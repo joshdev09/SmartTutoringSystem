@@ -1,3 +1,14 @@
+# Project Requirements:
+
+The project should contain the following OOP features:
+1.Encapsulation
+2.Polymorphism
+3.Inheritance (preferably multi-level or multiple)
+4.Exception Handling
+5.Array of objects
+
+additional: Instance variables and methods to be used. Minimum of 10 instance variables.
+
 # Folder Structure
 
 SmartTutoringSystem/

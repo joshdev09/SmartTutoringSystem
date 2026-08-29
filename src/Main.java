@@ -93,7 +93,7 @@ public class Main {
             Student student = authService.registerStudent(fullName, email, username, password);
             System.out.println("Student account created! Your ID is " + student.getStudentId());
         } else if (roleChoice == 2) {
-            System.out.print("Department (e.g. Mathematics): ");
+            System.out.print("Department (e.g. School of Computing): ");
             String department = input.nextLine();
             Teacher teacher = authService.registerTeacher(fullName, email, username, password, department);
             System.out.println("Teacher account created! Your ID is " + teacher.getStaffId());

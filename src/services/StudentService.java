@@ -4,8 +4,8 @@ import models.Quiz;
 import models.Student;
 import models.Subject;
 import models.Teacher;
-// import exceptions.SubjectNotFoundException; // TODO: uncomment once adds src/exceptions
-// import exceptions.QuizSubmissionException;  // TODO: uncomment once adds src/exceptions
+import exceptions.SubjectNotFoundException;
+import exceptions.QuizSubmissionException;
 
 import java.util.Scanner;
 
@@ -37,25 +37,19 @@ public class StudentService {
         return subjectCount;
     }
 
-    // TODO: this should throw SubjectNotFoundException once teammate adds src/exceptions.
-    // For now it just returns null when not found so we can test the app already.
-    public Subject findSubjectById(String subjectId) /* throws SubjectNotFoundException */ {
+    public Subject findSubjectById(String subjectId) throws SubjectNotFoundException {
         for (int i = 0; i < subjectCount; i++) {
             if (subjectCatalog[i].getSubjectId().equalsIgnoreCase(subjectId)) {
                 return subjectCatalog[i];
             }
         }
-        // throw new SubjectNotFoundException("No subject found with ID '" + subjectId + "'.");
-        return null;
+        throw new SubjectNotFoundException("No subject found with ID '" + subjectId + "'.");
     }
 
-    // Returns true if enrollment succeeded, false if the subject id was not found.
+    // Returns true if enrollment succeeded.
     public boolean enrollStudent(Student student, String subjectId, Teacher owningTeacher)
-            /* throws SubjectNotFoundException */ {
+            throws SubjectNotFoundException {
         Subject subject = findSubjectById(subjectId);
-        if (subject == null) {
-            return false;
-        }
         student.enrollInSubject(subject);
         if (owningTeacher != null) {
             owningTeacher.enrollStudent(student);
@@ -65,13 +59,9 @@ public class StudentService {
 
     // Runs the quiz question by question in the console using polymorphism:
     // every Question knows how to display itself and check its own answer.
-    // TODO: this should throw QuizSubmissionException once teammate adds src/exceptions.
-    // For now it just returns -1 when the quiz has no questions.
-    public int takeQuiz(Student student, Quiz quiz, Scanner input) /* throws QuizSubmissionException */ {
+    public int takeQuiz(Student student, Quiz quiz, Scanner input) throws QuizSubmissionException {
         if (quiz.getQuestionCount() == 0) {
-            System.out.println("Quiz '" + quiz.getTitle() + "' has no questions yet.");
-            // throw new QuizSubmissionException("Quiz '" + quiz.getTitle() + "' has no questions yet.");
-            return -1;
+            throw new QuizSubmissionException("Quiz '" + quiz.getTitle() + "' has no questions yet.");
         }
 
         String[] answers = new String[quiz.getQuestionCount()];

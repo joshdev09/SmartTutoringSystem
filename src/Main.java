@@ -13,10 +13,10 @@ import services.StudentService;
 import services.StudyToolService;
 import services.TeacherService;
 
-// import exceptions.FileExportException;      // TODO: uncomment once adds src/exceptions
-// import exceptions.InvalidLoginException;     // TODO: uncomment once adds src/exceptions
-// import exceptions.QuizSubmissionException;   // TODO: uncomment once adds src/exceptions
-// import exceptions.SubjectNotFoundException;  // TODO: uncomment once adds src/exceptions
+import exceptions.FileExportException;
+import exceptions.InvalidLoginException;
+import exceptions.QuizSubmissionException;
+import exceptions.SubjectNotFoundException;
 
 import java.util.Scanner;
 
@@ -108,10 +108,12 @@ public class Main {
         System.out.print("Password: ");
         String password = input.nextLine();
 
-        // TODO: wrap this back in try/catch (InvalidLoginException e) once adds src/exceptions.
-        User user = authService.login(username, password);
-        if (user == null) {
-            return; // authService.login already printed the reason
+        User user;
+        try {
+            user = authService.login(username, password);
+        } catch (InvalidLoginException e) {
+            System.out.println(e.getMessage());
+            return;
         }
         System.out.println("\nWelcome back, " + user.getFullName() + " (" + user.getRole() + ")!");
 
@@ -193,13 +195,12 @@ public class Main {
             return;
         }
 
-        // TODO: wrap this back in try/catch (SubjectNotFoundException e) once adds src/exceptions.
         Teacher owner = findTeacherOfSubject(subjectId);
-        boolean enrolled = studentService.enrollStudent(student, subjectId, owner);
-        if (enrolled) {
+        try {
+            studentService.enrollStudent(student, subjectId, owner);
             System.out.println("Successfully enrolled!");
-        } else {
-            System.out.println("Enrollment failed: No subject found with ID '" + subjectId + "'.");
+        } catch (SubjectNotFoundException e) {
+            System.out.println("Enrollment failed: " + e.getMessage());
         }
     }
 
@@ -239,10 +240,12 @@ public class Main {
         }
 
         Quiz quiz = subject.getQuizzes().get(0);
-        // TODO: wrap this back in try/catch (QuizSubmissionException e) once adds src/exceptions.
-        int score = studentService.takeQuiz(student, quiz, input);
-        if (score == -1) {
-            return; // studentService.takeQuiz already printed the reason
+        int score;
+        try {
+            score = studentService.takeQuiz(student, quiz, input);
+        } catch (QuizSubmissionException e) {
+            System.out.println(e.getMessage());
+            return;
         }
         System.out.println("\nYou scored " + score + "%. Passing score is " + quiz.getPassingScorePercent() + "%.");
         if (score >= quiz.getPassingScorePercent()) {
@@ -447,12 +450,11 @@ public class Main {
             path = "grades_" + subject.getSubjectId() + ".txt";
         }
 
-        // TODO: wrap this back in try/catch (FileExportException e) once teammate adds src/exceptions.
-        boolean success = gradeExportService.exportGrades(teacher.getEnrolledStudents(), subject, path);
-        if (success) {
+        try {
+            gradeExportService.exportGrades(teacher.getEnrolledStudents(), subject, path);
             System.out.println("Grades exported successfully to " + path);
-        } else {
-            System.out.println("Failed to export grades.");
+        } catch (FileExportException e) {
+            System.out.println("Failed to export grades: " + e.getMessage());
         }
     }
 

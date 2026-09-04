@@ -3,7 +3,7 @@ package services;
 import models.Student;
 import models.Teacher;
 import models.User;
-// import exceptions.InvalidLoginException;  TODO: uncomment once nagawa na exception
+import exceptions.InvalidLoginException;
 
 // Handles onboarding (registration) and login.
 // Uses a fixed-size ARRAY OF OBJECTS to store accounts.
@@ -48,23 +48,17 @@ public class AuthService {
         return teacher;
     }
 
-    // TODO: this should throw InvalidLoginException once adds src/exceptions.
-    // For now it just prints the reason and returns null so we can test the app already.
-    public User login(String username, String password) /* throws InvalidLoginException */ {
+    public User login(String username, String password) throws InvalidLoginException {
         for (int i = 0; i < userCount; i++) {
             User u = users[i];
             if (u.getUsername().equalsIgnoreCase(username)) {
                 if (u.checkPassword(password)) {
                     return u;
                 }
-                System.out.println("Incorrect password for username '" + username + "'.");
-                // throw new InvalidLoginException("Incorrect password for username '" + username + "'.");
-                return null;
+                throw new InvalidLoginException("Incorrect password for username '" + username + "'.");
             }
         }
-        System.out.println("No account found with username '" + username + "'.");
-        // throw new InvalidLoginException("No account found with username '" + username + "'.");
-        return null;
+        throw new InvalidLoginException("No account found with username '" + username + "'.");
     }
 
     public User[] getUsers() {

@@ -8,20 +8,26 @@ public class Subject {
     private String subjectName;
     private String description;
     private String teacherName;
+    private String enrollmentCode;
     private ArrayList <String> learningMaterials;
     private ArrayList <Quiz> quizzes;
 
-    public Subject(String subjectId, String subjectName, String description, String teacherName) {
+    public Subject(String subjectId, String subjectName, String description, String teacherName, String enrollmentCode) {
         this.subjectId = subjectId;
         this.subjectName = subjectName;
         this.description = description;
         this.teacherName = teacherName;
+        this.enrollmentCode = enrollmentCode;
         learningMaterials = new ArrayList<String>();
         quizzes = new ArrayList<Quiz>();
     }
 
     public String getSubjectId() {
         return subjectId;
+    }
+
+    public String getEnrollmentCode() {
+        return enrollmentCode;
     }
 
     public String getSubjectName() {
@@ -53,6 +59,6 @@ public class Subject {
     }
 
     public String toString() {
-        return subjectId + " - " + subjectName + " (" + teacherName + ")";
+        return subjectName + " (" + teacherName + ")";
     }
 }

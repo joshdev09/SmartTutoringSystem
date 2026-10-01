@@ -133,13 +133,11 @@ public class Main {
         boolean inDashboard = true;
         while (inDashboard) {
             System.out.println("\n===== STUDENT DASHBOARD (" + student.getFullName() + ") =====");
-            System.out.println("1. Courses / Subjects (browse & enroll)");
-            System.out.println("2. Learning Interface (materials + quiz)");
-            System.out.println("3. Pomodoro Timer");
-            System.out.println("4. Flashcards Page");
-            System.out.println("5. Study Methods and Learning Strategies");
-            System.out.println("6. View My Progress");
-            System.out.println("7. Logout");
+            System.out.println("1. Browse & Enroll Subjects");
+            System.out.println("2. My Enrolled Subjects (Learning Interface)");
+            System.out.println("3. Study Methods and Learning Strategies");
+            System.out.println("4. View My Progress");
+            System.out.println("5. Logout");
             int choice = readInt("Choose an option: ");
 
             switch (choice) {
@@ -147,21 +145,15 @@ public class Main {
                     browseAndEnrollSubjects(student);
                     break;
                 case 2:
-                    learningInterface(student);
+                    inDashboard = learningInterface(student);
                     break;
                 case 3:
-                    pomodoroMenu(student);
-                    break;
-                case 4:
-                    flashcardsMenu(student);
-                    break;
-                case 5:
                     studyMethodsMenu();
                     break;
-                case 6:
+                case 4:
                     viewProgress(student);
                     break;
-                case 7:
+                case 5:
                     inDashboard = false;
                     break;
                 default:
@@ -189,14 +181,29 @@ public class Main {
             System.out.println((i + 1) + ". " + catalog[i] + tag);
         }
 
-        System.out.print("\nEnter the Subject ID to enroll (or press ENTER to go back): ");
-        String subjectId = input.nextLine();
-        if (subjectId.trim().length() == 0) {
+        int pick = readInt("\nEnter the subject number to enroll (0 to go back): ");
+        if (pick <= 0 || pick > count) {
             return;
         }
+        String subjectId = catalog[pick - 1].getSubjectId();
 
-        Teacher owner = findTeacherOfSubject(subjectId);
         try {
+            Subject subjectToEnroll = studentService.findSubjectById(subjectId);
+            
+            if (student.isEnrolledIn(subjectId)) {
+                System.out.println("You are already enrolled in this subject.");
+                return;
+            }
+
+            System.out.print("Enter Enrollment Code for " + subjectToEnroll.getSubjectName() + ": ");
+            String enteredCode = input.nextLine();
+
+            if (!enteredCode.equals(subjectToEnroll.getEnrollmentCode())) {
+                System.out.println("Incorrect Enrollment Code. Cannot enroll.");
+                return;
+            }
+
+            Teacher owner = findTeacherOfSubject(subjectId);
             studentService.enrollStudent(student, subjectId, owner);
             System.out.println("Successfully enrolled!");
         } catch (SubjectNotFoundException e) {
@@ -204,72 +211,107 @@ public class Main {
         }
     }
 
-    private static void learningInterface(Student student) {
+    // Returns false if the student selected "Logout" from within the interface.
+    private static boolean learningInterface(Student student) {
         if (student.getEnrolledSubjects().isEmpty()) {
             System.out.println("\nYou are not enrolled in any subject yet. Enroll first!");
-            return;
+            return true;
         }
 
-        System.out.println("\n--- Your Subjects ---");
-        for (int i = 0; i < student.getEnrolledSubjects().size(); i++) {
-            System.out.println((i + 1) + ". " + student.getEnrolledSubjects().get(i));
-        }
-        int pick = readInt("Choose a subject number to open (0 to cancel): ");
-        if (pick <= 0 || pick > student.getEnrolledSubjects().size()) {
-            return;
-        }
-        Subject subject = student.getEnrolledSubjects().get(pick - 1);
-
-        System.out.println("\n--- Learning Materials: " + subject.getSubjectName() + " ---");
-        if (subject.getLearningMaterials().isEmpty()) {
-            System.out.println("(No materials published yet.)");
-        } else {
-            for (int i = 0; i < subject.getLearningMaterials().size(); i++) {
-                System.out.println("- " + subject.getLearningMaterials().get(i));
+        while (true) {
+            System.out.println("\n--- Your Enrolled Subjects ---");
+            for (int i = 0; i < student.getEnrolledSubjects().size(); i++) {
+                System.out.println((i + 1) + ". " + student.getEnrolledSubjects().get(i).getSubjectName() + " [ENROLLED]");
+            }
+            int pick = readInt("Choose a subject number to open (0 to go back to Dashboard): ");
+            if (pick == 0) {
+                return true;
+            }
+            if (pick < 0 || pick > student.getEnrolledSubjects().size()) {
+                System.out.println("Invalid option.");
+                continue;
+            }
+            
+            Subject subject = student.getEnrolledSubjects().get(pick - 1);
+            boolean stayLogged = subjectMenu(student, subject);
+            if (!stayLogged) {
+                return false; // propagate logout
             }
         }
+    }
 
-        if (subject.getQuizzes().isEmpty()) {
-            System.out.println("\nNo quiz has been set for this subject yet.");
-            return;
-        }
+    // Returns false if the student selected "Logout".
+    private static boolean subjectMenu(Student student, Subject subject) {
+        while (true) {
+            System.out.println("\n===== " + subject.getSubjectName() + " MENU =====");
+            System.out.println("1. View Learning Materials");
+            System.out.println("2. Take Quizzes");
+            System.out.println("3. Pomodoro Timer");
+            System.out.println("4. Flashcards");
+            System.out.println("5. Back to Subjects List");
+            System.out.println("6. Logout");
+            int choice = readInt("Choose an option: ");
 
-        System.out.print("\nTake the quiz for this subject now? (y/n): ");
-        if (!input.nextLine().equalsIgnoreCase("y")) {
-            return;
-        }
-
-        Quiz quiz = subject.getQuizzes().get(0);
-        int score;
-        try {
-            score = studentService.takeQuiz(student, quiz, input);
-        } catch (QuizSubmissionException e) {
-            System.out.println(e.getMessage());
-            return;
-        }
-        System.out.println("\nYou scored " + score + "%. Passing score is " + quiz.getPassingScorePercent() + "%.");
-        if (score >= quiz.getPassingScorePercent()) {
-            System.out.println("You passed!");
-        } else {
-            System.out.println("Keep practicing!");
+            switch (choice) {
+                case 1:
+                    System.out.println("\n--- Learning Materials ---");
+                    if (subject.getLearningMaterials().isEmpty()) {
+                        System.out.println("(No materials published yet.)");
+                    } else {
+                        for (int i = 0; i < subject.getLearningMaterials().size(); i++) {
+                            System.out.println("- " + subject.getLearningMaterials().get(i));
+                        }
+                    }
+                    break;
+                case 2:
+                    if (subject.getQuizzes().isEmpty()) {
+                        System.out.println("\nNo quiz has been set for this subject yet.");
+                    } else {
+                        System.out.print("\nTake the quiz for this subject now? (y/n): ");
+                        if (input.nextLine().equalsIgnoreCase("y")) {
+                            Quiz quiz = subject.getQuizzes().get(0); 
+                            int score;
+                            try {
+                                score = studentService.takeQuiz(student, quiz, input);
+                            } catch (QuizSubmissionException e) {
+                                System.out.println(e.getMessage());
+                                break;
+                            }
+                            System.out.println("\nYou scored " + score + "%. Passing score is " + quiz.getPassingScorePercent() + "%.");
+                            if (score >= quiz.getPassingScorePercent()) {
+                                System.out.println("You passed!");
+                            } else {
+                                System.out.println("Keep practicing!");
+                            }
+                        }
+                    }
+                    break;
+                case 3:
+                    int minutes = readInt("\nSession length in minutes (e.g. 25): ");
+                    if (minutes <= 0) {
+                        System.out.println("Session length must be positive.");
+                    } else {
+                        studyToolService.runPomodoroSession(student, subject.getSubjectName(), minutes);
+                    }
+                    break;
+                case 4:
+                    flashcardsMenu(student, subject.getSubjectName());
+                    break;
+                case 5:
+                    return true;
+                case 6:
+                    return false;
+                default:
+                    System.out.println("Invalid option. Please try again.");
+                    break;
+            }
         }
     }
 
-    private static void pomodoroMenu(Student student) {
-        System.out.print("\nSubject/topic to focus on: ");
-        String subjectName = input.nextLine();
-        int minutes = readInt("Session length in minutes (e.g. 25): ");
-        if (minutes <= 0) {
-            System.out.println("Session length must be positive.");
-            return;
-        }
-        studyToolService.runPomodoroSession(student, subjectName, minutes);
-    }
-
-    private static void flashcardsMenu(Student student) {
+    private static void flashcardsMenu(Student student, String category) {
         boolean inMenu = true;
         while (inMenu) {
-            System.out.println("\n--- Flashcards Page ---");
+            System.out.println("\n--- Flashcards for " + category + " ---");
             System.out.println("1. Create a flashcard");
             System.out.println("2. Review my flashcards");
             System.out.println("3. Back");
@@ -277,8 +319,6 @@ public class Main {
 
             switch (choice) {
                 case 1:
-                    System.out.print("Subject/category: ");
-                    String category = input.nextLine();
                     System.out.print("Term / question: ");
                     String term = input.nextLine();
                     System.out.print("Definition / answer: ");
@@ -326,27 +366,31 @@ public class Main {
         boolean inDashboard = true;
         while (inDashboard) {
             System.out.println("\n===== TEACHER DASHBOARD (" + teacher.getFullName() + ") =====");
-            System.out.println("1. View Enrolled Students");
-            System.out.println("2. Publish Learning Materials");
-            System.out.println("3. Set a Quiz");
-            System.out.println("4. Grade and Export Grades to File");
-            System.out.println("5. Logout");
+            System.out.println("1. Create a Subject");
+            System.out.println("2. View Enrolled Students");
+            System.out.println("3. Publish Learning Materials");
+            System.out.println("4. Set a Quiz");
+            System.out.println("5. Grade and Export Grades to File");
+            System.out.println("6. Logout");
             int choice = readInt("Choose an option: ");
 
             switch (choice) {
                 case 1:
-                    viewEnrolledStudents(teacher);
+                    createSubject(teacher);
                     break;
                 case 2:
-                    publishMaterials(teacher);
+                    viewEnrolledStudents(teacher);
                     break;
                 case 3:
-                    setQuiz(teacher);
+                    publishMaterials(teacher);
                     break;
                 case 4:
-                    gradeAndExport(teacher);
+                    setQuiz(teacher);
                     break;
                 case 5:
+                    gradeAndExport(teacher);
+                    break;
+                case 6:
                     inDashboard = false;
                     break;
                 default:
@@ -354,6 +398,25 @@ public class Main {
                     break;
             }
         }
+    }
+
+    private static void createSubject(Teacher teacher) {
+        System.out.println("\n--- Create a Subject ---");
+        System.out.print("Enter Subject ID (e.g. CS101): ");
+        String subjectId = input.nextLine();
+        System.out.print("Enter Subject Name (e.g. Intro to CS): ");
+        String subjectName = input.nextLine();
+        System.out.print("Enter Subject Description: ");
+        String description = input.nextLine();
+        System.out.print("Set an Enrollment Code for this subject (give this to your students): ");
+        String enrollmentCode = input.nextLine();
+
+        Subject newSubject = new Subject(subjectId, subjectName, description, teacher.getFullName(), enrollmentCode);
+        teacher.addSubject(newSubject);
+        studentService.registerSubject(newSubject);
+
+        System.out.println("\nSubject '" + subjectName + "' created successfully!");
+        System.out.println("Make sure to share the Enrollment Code: [" + enrollmentCode + "] with your students.");
     }
 
     private static void viewEnrolledStudents(Teacher teacher) {
@@ -374,8 +437,21 @@ public class Main {
         if (subject == null) {
             return;
         }
-        System.out.print("Enter the material title/content to publish: ");
+
+        System.out.println("\n--- Current Learning Materials for " + subject.getSubjectName() + " ---");
+        if (subject.getLearningMaterials().isEmpty()) {
+            System.out.println("(No materials published yet.)");
+        } else {
+            for (int i = 0; i < subject.getLearningMaterials().size(); i++) {
+                System.out.println("- " + subject.getLearningMaterials().get(i));
+            }
+        }
+
+        System.out.print("\nEnter a new material title/content to publish (or press ENTER to go back): ");
         String material = input.nextLine();
+        if (material.trim().length() == 0) {
+            return;
+        }
         teacherService.publishMaterial(subject, material);
         System.out.println("Material published to \"" + subject.getSubjectName() + "\".");
     }
@@ -508,26 +584,18 @@ public class Main {
     // Seeds one teacher + one subject + one quiz so the app can be tried right away.
 
     private static void seedDemoData() {
-        Teacher demoTeacher = authService.registerTeacher(
-                "Juan Dela Cruz", "juan.delacruz@sts.edu", "teacher1", "pass123", "Mathematics");
+        Teacher chris = authService.registerTeacher(
+                "Chris Almocera", "chris.almocera@sts.edu", "chris", "pass123", "Information Technology");
+        Subject iweb = new Subject("IWEB", "IWEB", "Web Development", chris.getFullName(), "IWEB123");
+        chris.addSubject(iweb);
+        studentService.registerSubject(iweb);
 
-        Subject math = new Subject("SUB-101", "Basic Algebra", "Introductory algebra concepts.", demoTeacher.getFullName());
-        math.publishMaterial("Lesson 1: Variables and Expressions (see handout).");
-        math.publishMaterial("Lesson 2: Solving Linear Equations.");
+        Teacher bon = authService.registerTeacher(
+                "Bon Flores", "bon.flores@sts.edu", "bon", "pass123", "Computer Science");
+        Subject dsal = new Subject("DSAL", "DSAL", "Data Structures and Algorithms", bon.getFullName(), "DSAL123");
+        bon.addSubject(dsal);
+        studentService.registerSubject(dsal);
 
-        Quiz algebraQuiz = new Quiz("QZ-SUB-101-1", "Algebra Basics Quiz", math.getSubjectId(), 3, 60);
-        algebraQuiz.addQuestion(new MultipleChoiceQuestion(
-                "Q1", "What is the value of x in x + 2 = 5?", 1,
-                new String[] { "A) 1", "B) 2", "C) 3", "D) 4" }, 'C'));
-        algebraQuiz.addQuestion(new TrueFalseQuestion(
-                "Q2", "A variable can only represent one fixed number forever.", 1, false));
-        algebraQuiz.addQuestion(new IdentificationQuestion(
-                "Q3", "What do we call a letter used to represent an unknown number?", 1, "variable"));
-        math.addQuiz(algebraQuiz);
-
-        demoTeacher.addSubject(math);
-        studentService.registerSubject(math);
-
-        System.out.println("(Demo teacher account ready -> username: teacher1 | password: pass123)");
+        System.out.println("(Demo teacher accounts ready -> usernames: chris / bon | password: pass123)");
     }
 }
